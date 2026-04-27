@@ -93,7 +93,7 @@ switch ($path) {
                 $line = trim($line);
                 if (strpos($line, '#EXTINF') === 0 && preg_match('/group-title="([^"]+)"/', $line, $matches)) {
                     $current = $matches[1];
-                } elseif (strpos($line, 'http://') === 0 && $current === $category) {
+                } elseif (strpos($line, 'https://') === 0 && $current === $category) {
                     $channels[] = ['url' => $line, 'name' => basename($line)];
                 }
             }

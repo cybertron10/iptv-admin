@@ -7,13 +7,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; transition: background 0.3s; }
+        body { font-family: 'Inter', sans-serif; transition: all 0.3s; }
         body.light-mode { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         body.light-mode .dashboard { background: #f5f7fb; }
         body.light-mode .stat-card, body.light-mode .create-user-form, body.light-mode .users-table { background: white; }
         body.dark-mode { background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); }
         body.dark-mode .dashboard { background: #1a1a2e; }
         body.dark-mode .stat-card, body.dark-mode .create-user-form, body.dark-mode .users-table { background: #2d2d44; color: #e0e0e0; border: 1px solid #3d3d5c; }
+        body.dark-mode .users-table th { background: #25253a; }
+        body.dark-mode .users-table td { border-bottom-color: #3d3d5c; }
         .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .login-card { background: white; border-radius: 16px; padding: 48px; width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
         .dashboard { min-height: 100vh; }
@@ -25,10 +27,11 @@
         .stat-card h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 12px; }
         .stat-card .value { font-size: 28px; font-weight: 700; }
         .progress-bar { background: #e2e8f0; border-radius: 10px; height: 8px; margin: 12px 0; }
-        .progress-fill { background: linear-gradient(135deg, #667eea, #764ba2); height: 100%; border-radius: 10px; }
+        .progress-fill { background: linear-gradient(135deg, #667eea, #764ba2); height: 100%; border-radius: 10px; transition: width 0.3s; }
         .create-user-form, .users-table { padding: 24px; border-radius: 16px; margin-bottom: 32px; }
         .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
         .form-group input { padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; flex: 1; }
+        body.dark-mode .form-group input { background: #25253a; border-color: #3d3d5c; color: white; }
         .users-table { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
@@ -49,6 +52,7 @@
         .service-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; margin: 2px; }
         .service-active { background: #d1fae5; color: #065f46; }
         .service-inactive { background: #fee2e2; color: #991b1b; }
+        .loading { text-align: center; padding: 40px; }
         @media (max-width: 768px) { .dashboard-content { padding: 16px; } .stats-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -76,13 +80,13 @@
             <div class="dashboard-content">
                 <div class="stats-grid" id="statsGrid"></div>
                 <div class="stats-grid">
-                    <div class="stat-card"><h3>Total Users</h3><div class="value" id="totalUsers">0</div></div>
-                    <div class="stat-card"><h3>Active Users</h3><div class="value" id="activeUsers">0</div></div>
-                    <div class="stat-card"><h3>Categories</h3><div class="value" id="totalCats">0</div></div>
+                    <div class="stat-card"><h3>👥 Total Users</h3><div class="value" id="totalUsers">0</div></div>
+                    <div class="stat-card"><h3>✅ Active Users</h3><div class="value" id="activeUsers">0</div></div>
+                    <div class="stat-card"><h3>📺 Categories</h3><div class="value" id="totalCats">0</div></div>
                 </div>
                 
                 <div class="create-user-form">
-                    <h3>Create New User</h3>
+                    <h3>➕ Create New User</h3>
                     <div class="form-row">
                         <div class="form-group"><input type="text" id="newUsername" placeholder="Username"></div>
                         <div class="form-group"><input type="password" id="newPassword" placeholder="Password"></div>
@@ -119,6 +123,7 @@
         let currentUserChannels = [];
         
         async function login() {
+            alert("Login function called");
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const res = await fetch('/api/auth', {
@@ -128,6 +133,7 @@
             });
             const data = await res.json();
             if (data.success) {
+                alert("Login success, showing dashboard");
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
                 refreshAll();
@@ -147,13 +153,14 @@
             const res = await fetch('/api/stats.php');
             const data = await res.json();
             if (data.success) {
+                alert("Login success, showing dashboard");
                 document.getElementById('statsGrid').innerHTML = `
-                    <div class="stat-card"><h3>CPU</h3><div class="value">${data.cpu.usage_percent}%</div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(data.cpu.usage_percent, 100)}%"></div></div><div>Load: ${data.cpu.load_1min}</div></div>
-                    <div class="stat-card"><h3>Memory</h3><div class="value">${data.memory.usage_percent}%</div><div class="progress-bar"><div class="progress-fill" style="width:${data.memory.usage_percent}%"></div></div><div>${data.memory.used} / ${data.memory.total}</div></div>
-                    <div class="stat-card"><h3>Disk</h3><div class="value">${data.disk.usage_percent}%</div><div class="progress-bar"><div class="progress-fill" style="width:${data.disk.usage_percent}%"></div></div><div>${data.disk.used} / ${data.disk.total}</div></div>
-                    <div class="stat-card"><h3>Network</h3><div class="value">${data.network.rx_bytes}</div><div>TX: ${data.network.tx_bytes}</div></div>
-                    <div class="stat-card"><h3>Uptime</h3><div class="value">${data.system.uptime}</div><div>Connections: ${data.system.active_connections}</div></div>
-                    <div class="stat-card"><h3>Services</h3><div id="services"></div></div>
+                    <div class="stat-card"><h3>🖥️ CPU</h3><div class="value">${data.cpu.usage_percent}%</div><div class="progress-bar"><div class="progress-fill" style="width:${Math.min(data.cpu.usage_percent, 100)}%"></div></div><div>Load: ${data.cpu.load_1min}</div></div>
+                    <div class="stat-card"><h3>💾 Memory</h3><div class="value">${data.memory.usage_percent}%</div><div class="progress-bar"><div class="progress-fill" style="width:${data.memory.usage_percent}%"></div></div><div>${data.memory.used} / ${data.memory.total}</div></div>
+                    <div class="stat-card"><h3>💿 Disk</h3><div class="value">${data.disk.usage_percent}%</div><div class="progress-bar"><div class="progress-fill" style="width:${data.disk.usage_percent}%"></div></div><div>${data.disk.used} / ${data.disk.total}</div></div>
+                    <div class="stat-card"><h3>🌐 Network</h3><div class="value">${data.network.rx_bytes}</div><div>TX: ${data.network.tx_bytes}</div></div>
+                    <div class="stat-card"><h3>⏱️ Uptime</h3><div class="value">${data.system.uptime}</div><div>Connections: ${data.system.active_connections}</div></div>
+                    <div class="stat-card"><h3>🔧 Services</h3><div id="services"></div></div>
                 `;
                 let svcHtml = '';
                 for (const [s, st] of Object.entries(data.system.services)) {
@@ -173,53 +180,50 @@
             const res = await fetch('/api/users');
             const data = await res.json();
             if (data.success) {
+                alert("Login success, showing dashboard");
                 document.getElementById('totalUsers').innerText = data.users.length;
                 const active = data.users.filter(u => new Date(u.expiry_date) > new Date()).length;
                 document.getElementById('activeUsers').innerText = active;
-                let html = `<table><thead><tr><th>ID</th><th>Username</th><th>Password</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+                let html = '<table><thead><tr><th>ID</th><th>Username</th><th>Password</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
                 data.users.forEach(u => {
                     const status = new Date(u.expiry_date) > new Date() ? 'Active' : 'Expired';
                     const statusColor = status === 'Active' ? '#10b981' : '#ef4444';
                     const url = `${location.origin}/get.php?username=${u.username}&password=${u.password}&type=m3u_plus&output=ts`;
                     html += `<tr>
                         <td>${u.id}</td>
-                        <td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.password)}</td><td>${u.expiry_date}</td><td><span style="color:${statusColor}">${status}</span></td>
+                        <td>${escapeHtml(u.username)}</td>
+                        <td>${escapeHtml(u.password)}</td>
+                        <td>${u.expiry_date}</td>
+                        <td style="color:${statusColor}">${status}</td>
                         <td class="action-icons">
-                            <button onclick="copyUrl('${url}')" class="btn-primary">📋 Copy</button>
-                            <button onclick="editPackage(${u.id}, '${u.username}')" class="btn-warning">✏️ Edit</button>
-                            <button onclick="showPasswordModal(${u.id})" class="btn-warning">🔑 PW</button>
-                            <button onclick="deleteUser(${u.id})" class="btn-danger">🗑️ Del</button>
+                            <button onclick="copyToClipboard('${url}')" class="btn-primary">📋</button>
+                            <button onclick="window.open("package-editor.html?user_id=\1\u0026username=\2", "_blank", "width=1200,height=800")" class="btn-warning">✏️</button>
+                            <button onclick="showPasswordModal(${u.id})" class="btn-warning">🔑</button>
+                            <button onclick="deleteUser(${u.id})" class="btn-danger">🗑️</button>
                         </td>
                     </tr>`;
                 });
-                html += `</tbody></table>`;
+                html += '</tbody></table>';
                 document.getElementById('usersTableContainer').innerHTML = html;
             }
         }
         
-        function copyUrl(url) {
-            const textarea = document.createElement('textarea');
-            textarea.value = url;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
+        function copyToClipboard(url) {
+            var textarea = document.createElement("textarea"); textarea.value = url; document.body.appendChild(textarea); textarea.select(); document.execCommand("copy"); document.body.removeChild(textarea); alert("URL copied: " + url);
             alert('URL copied!');
         }
         
-        async function editPackage(userId, username) {
+        async function editPackage(userId, username) { console.log("Edit clicked for user:", userId, username); alert("Edit clicked"); alert("Loading categories...");
+            alert("Step 2 - About to fetch user channels");
             currentUserId = userId;
             document.getElementById('modalUsername').innerText = username;
-            
-            const uRes = await fetch(`/api/user-channels?user_id=${userId}`);
+            const uRes = await fetch(`/api/user-channels?user_id=${userId}`).catch(e => { alert("Fetch failed: " + e); });
             const uData = await uRes.json();
             currentUserChannels = uData.channels || [];
-            
             const cRes = await fetch('/api/categories');
             const cData = await cRes.json();
-            
             let html = '';
-            for (const cat of (cData.categories || []).slice(0, 80)) {
+            for (const cat of (cData.categories || [])) {
                 const chRes = await fetch(`/api/channels?category=${encodeURIComponent(cat)}`);
                 const chData = await chRes.json();
                 const catId = cat.replace(/[^a-z0-9]/gi, '_');
@@ -227,7 +231,7 @@
                     <div class="category-header" onclick="toggleCategory('${catId}')">📁 ${cat} (${chData.channels?.length || 0})</div>
                     <div class="channels-container" id="${catId}">`;
                 if (chData.channels) {
-                    chData.channels.slice(0, 50).forEach(ch => {
+                    chData.channels.forEach(ch => {
                         const checked = currentUserChannels.includes(ch.url) ? 'checked' : '';
                         html += `<div class="channel-item"><input type="checkbox" class="channel-cb" data-url="${ch.url}" ${checked}> ${escapeHtml(ch.name)}</div>`;
                     });
@@ -253,9 +257,9 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert(`Saved ${selected.length} channels`);
+                alert("Login success, showing dashboard");
+                alert(`Package saved with ${selected.length} channels`);
                 closePackageModal();
-                loadUsers();
             } else {
                 alert('Failed to save');
             }
@@ -305,6 +309,7 @@
             });
             const data = await res.json();
             if (data.success) {
+                alert("Login success, showing dashboard");
                 document.getElementById('newUsername').value = '';
                 document.getElementById('newPassword').value = '';
                 loadUsers();
@@ -331,3 +336,9 @@
     </script>
 </body>
 </html>
+<script>
+    function testFunction() {
+        alert("test function works");
+    }
+</script>
+<button onclick="testFunction()" style="position:fixed; bottom:10px; right:10px;">Test</button>
