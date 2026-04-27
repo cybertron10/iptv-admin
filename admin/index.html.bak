@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>IPTV Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; transition: background 0.3s, color 0.3s; }
+        body.light-mode { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #1a1a2e; }
+        body.light-mode .dashboard { background: #f5f7fb; }
+        body.light-mode .stat-card, body.light-mode .create-user-form, body.light-mode .users-table, body.light-mode .modal-content { background: white; }
+        body.dark-mode { background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%); color: #e0e0e0; }
+        body.dark-mode .dashboard { background: #1a1a2e; }
+        body.dark-mode .stat-card, body.dark-mode .create-user-form, body.dark-mode .users-table, body.dark-mode .modal-content { background: #2d2d44; border: 1px solid #3d3d5c; }
+        body.dark-mode .users-table th { background: #25253a; }
+        body.dark-mode .users-table td { border-bottom-color: #3d3d5c; }
+        body.dark-mode .input-group input, body.dark-mode .form-group input { background: #25253a; border-color: #3d3d5c; color: #e0e0e0; }
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .login-card { border-radius: 16px; padding: 48px; width: 100%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        body.light-mode .login-card { background: white; }
+        body.dark-mode .login-card { background: #2d2d44; }
+        .login-card h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .input-group { margin-bottom: 24px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .input-group input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; }
+        .btn-primary { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .app-container { display: none; }
+        .dashboard { min-height: 100vh; }
+        .dashboard-header { padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid; }
+        body.light-mode .dashboard-header { background: white; border-bottom-color: #e2e8f0; }
+        body.dark-mode .dashboard-header { background: #2d2d44; border-bottom-color: #3d3d5c; }
+        .dashboard-header h1 { font-size: 24px; font-weight: 700; }
+        .header-buttons { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .theme-toggle { background: none; border: 1px solid; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px; }
+        .refresh-btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; background: #667eea; color: white; }
+        .btn-logout { padding: 8px 20px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .dashboard-content { padding: 32px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .stat-card { padding: 20px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 12px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; }
+        .progress-bar { border-radius: 10px; height: 8px; margin: 12px 0; overflow: hidden; background: #e2e8f0; }
+        body.dark-mode .progress-bar { background: #3d3d5c; }
+        .progress-fill { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; border-radius: 10px; transition: width 0.3s; }
+        .progress-fill.critical { background: #ef4444; }
+        .progress-fill.warning { background: #f59e0b; }
+        .users-table { overflow-x: auto; border-radius: 16px; }
+        .users-table table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        .users-table th, .users-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid; }
+        body.light-mode .users-table th, body.light-mode .users-table td { border-bottom-color: #e2e8f0; }
+        body.dark-mode .users-table th, body.dark-mode .users-table td { border-bottom-color: #3d3d5c; }
+        .users-table th { font-weight: 600; background: #f8f9fc; }
+        body.dark-mode .users-table th { background: #25253a; }
+        .action-icons { white-space: nowrap; }
+        .action-icons button { background: none; border: none; cursor: pointer; font-size: 18px; margin: 0 4px; padding: 4px 6px; border-radius: 6px; transition: all 0.2s; }
+        .action-icons button:hover { transform: scale(1.1); }
+        .icon-copy { background: #667eea; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; }
+        .icon-edit { color: #3b82f6; }
+        .icon-password { color: #f59e0b; }
+        .icon-delete { color: #ef4444; }
+        .user-url-code { font-size: 11px; font-family: monospace; word-break: break-all; max-width: 200px; display: inline-block; }
+        .create-user-form { padding: 24px; border-radius: 16px; margin-bottom: 32px; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .form-group input { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { border-radius: 16px; padding: 32px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .close-modal { cursor: pointer; font-size: 24px; float: right; }
+        .service-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px; }
+        .service-active { background: #d1fae5; color: #065f46; }
+        .service-inactive { background: #fee2e2; color: #991b1b; }
+        .category { margin-bottom: 15px; }
+        .category-header { padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 500; background: #f0f0f0; }
+        body.dark-mode .category-header { background: #25253a; }
+        .channels-container { margin-left: 20px; margin-top: 10px; display: none; }
+        .channel-item { padding: 6px; margin: 2px 0; border-radius: 4px; display: flex; align-items: center; background: #f8f9fc; }
+        body.dark-mode .channel-item { background: #1a1a2e; }
+        .channel-item input { margin-right: 10px; }
+        .loading { text-align: center; padding: 40px; }
+        @media (max-width: 768px) { .dashboard-content { padding: 16px; } .stats-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body class="light-mode">
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <h1>Welcome Back</h1>
+            <p>Sign in to manage your IPTV system</p>
+            <div id="loginError" style="display:none; background:#fee; color:#c33; padding:12px; border-radius:8px; margin-bottom:20px;"></div>
+            <div class="input-group"><label>Username</label><input type="text" id="username" autocomplete="username" placeholder="Enter your username"></div>
+            <div class="input-group"><label>Password</label><input type="password" id="password" autocomplete="current-password" placeholder="Enter your password" onkeypress="if(event.key===13) login()"></div>
+            <button class="btn-primary" onclick="login()">Sign In</button>
+        </div>
+    </div>
+    
+    <div id="dashboard" class="app-container">
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>🎬 IPTV Management System</h1>
+                <div class="header-buttons">
+                    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
+                    <button class="refresh-btn" onclick="refreshAllData()">🔄 Refresh</button>
+                    <button class="btn-logout" onclick="logout()">Logout</button>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="stats-grid" id="serverStats">
+                    <div class="stat-card"><h3>🖥️ CPU Usage</h3><div class="value" id="cpuValue">--%</div><div class="progress-bar"><div class="progress-fill" id="cpuBar" style="width:0%"></div></div><div class="sub-value" id="cpuLoad">Load: --</div></div>
+                    <div class="stat-card"><h3>💾 Memory Usage</h3><div class="value" id="memValue">--%</div><div class="progress-bar"><div class="progress-fill" id="memBar" style="width:0%"></div></div><div class="sub-value" id="memDetails">-- / --</div></div>
+                    <div class="stat-card"><h3>💿 Disk Usage</h3><div class="value" id="diskValue">--%</div><div class="progress-bar"><div class="progress-fill" id="diskBar" style="width:0%"></div></div><div class="sub-value" id="diskDetails">-- / --</div></div>
+                    <div class="stat-card"><h3>🌐 Network Traffic</h3><div class="value" id="rxTx">--</div><div class="sub-value">RX: -- | TX: --</div></div>
+                    <div class="stat-card"><h3>⏱️ System Uptime</h3><div class="value" id="uptime" style="font-size:20px;">--</div><div class="sub-value" id="connections">Active Connections: --</div></div>
+                    <div class="stat-card"><h3>🔧 Services</h3><div id="services"></div></div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>👥 Total Users</h3><div class="value" id="totalUsers">0</div></div>
+                    <div class="stat-card"><h3>✅ Active Users</h3><div class="value" id="activeUsers">0</div></div>
+                    <div class="stat-card"><h3>📺 Total Categories</h3><div class="value" id="totalCategories">0</div></div>
+                </div>
+                
+                <div class="create-user-form">
+                    <h3 style="margin-bottom:20px;">➕ Create New User</h3>
+                    <div class="form-row">
+                        <div class="form-group"><input type="text" id="newUsername" autocomplete="off" placeholder="Username"></div>
+                        <div class="form-group"><input type="password" id="newPassword" autocomplete="new-password" placeholder="Password"></div>
+                        <div class="form-group"><input type="number" id="expiryDays" placeholder="Days valid" value="30"></div>
+                    </div>
+                    <button class="btn-primary" onclick="createUser()" style="width:auto">Create User</button>
+                </div>
+                
+                <div class="users-table" id="usersTableContainer"><div class="loading">Loading users...</div></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="channelModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Select Channels for <span id="modalUsername"></span></h2><span class="close-modal" onclick="closeChannelModal()">&times;</span></div><div id="categoriesList"></div><button class="btn-save" onclick="saveUserChannels()" style="margin-top:20px; padding:12px; background:#10b981; color:white; border:none; border-radius:8px; width:100%; cursor:pointer;">Save Selection</button></div></div>
+    <div id="passwordModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Change Password</h2><span class="close-modal" onclick="closePasswordModal()">&times;</span></div><div class="form-group"><label>New Password</label><input type="password" id="newPasswordInput" style="width:100%;padding:10px;" onkeypress="if(event.key===13) changePassword()"></div><button class="btn-save" onclick="changePassword()" style="margin-top:20px; padding:12px; background:#f59e0b; color:white; border:none; border-radius:8px; width:100%; cursor:pointer;">Update Password</button></div></div>
+    
+    <script>
+        let currentUserId = null;
+        let currentUserChannels = [];
+        let allCategories = [];
+        
+        function toggleTheme() {
+            const body = document.body;
+            const toggle = document.getElementById('themeToggle');
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                toggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                toggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        function loadTheme() {
+            const saved = localStorage.getItem('theme');
+            const body = document.body;
+            const toggle = document.getElementById('themeToggle');
+            if (saved === 'dark') {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                toggle.textContent = '☀️';
+            }
+        }
+        
+        async function refreshAllData() { await loadServerStats(); await loadUsers(); await loadCategoriesCount(); }
+        
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('loginError');
+            try {
+                const res = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    loadAllData();
+                    setInterval(loadServerStats, 30000);
+                } else { errorDiv.style.display = 'block'; errorDiv.textContent = 'Invalid credentials'; }
+            } catch(e) { errorDiv.style.display = 'block'; errorDiv.textContent = 'Login failed'; }
+        }
+        
+        async function loadAllData() { await loadServerStats(); await loadUsers(); await loadCategoriesCount(); }
+        
+        async function loadCategoriesCount() {
+            try { const res = await fetch('/api/categories'); const data = await res.json(); if (data.success) document.getElementById('totalCategories').textContent = data.categories?.length || 0; } catch(e) {}
+        }
+        
+        async function loadServerStats() {
+            try {
+                const res = await fetch('/api/stats.php'); const data = await res.json();
+                if (data.success) {
+                    document.getElementById('cpuValue').textContent = data.cpu.usage_percent + '%';
+                    document.getElementById('cpuBar').style.width = Math.min(data.cpu.usage_percent, 100) + '%';
+                    document.getElementById('cpuLoad').textContent = `Load: ${data.cpu.load_1min}`;
+                    document.getElementById('memValue').textContent = data.memory.usage_percent + '%';
+                    document.getElementById('memBar').style.width = data.memory.usage_percent + '%';
+                    document.getElementById('memDetails').textContent = `${data.memory.used} / ${data.memory.total}`;
+                    document.getElementById('diskValue').textContent = data.disk.usage_percent + '%';
+                    document.getElementById('diskBar').style.width = data.disk.usage_percent + '%';
+                    document.getElementById('diskDetails').textContent = `${data.disk.used} / ${data.disk.total}`;
+                    document.getElementById('rxTx').textContent = `${data.network.rx_bytes} / ${data.network.tx_bytes}`;
+                    document.getElementById('uptime').textContent = data.system.uptime;
+                    document.getElementById('connections').textContent = `Active: ${data.system.active_connections}`;
+                    let svcHtml = ''; for (const [s, st] of Object.entries(data.system.services)) { svcHtml += `<span class="service-badge service-${st}">${s}: ${st}</span> `; }
+                    document.getElementById('services').innerHTML = svcHtml;
+                }
+            } catch(e) {}
+        }
+        
+        async function loadUsers() {
+            const res = await fetch('/api/users'); const data = await res.json();
+            if (data.success) { displayUsers(data.users); document.getElementById('totalUsers').textContent = data.users.length; const active = data.users.filter(u => new Date(u.expiry_date) > new Date()).length; document.getElementById('activeUsers').textContent = active; }
+        }
+        
+        function displayUsers(users) {
+            const container = document.getElementById('usersTableContainer');
+            if (!users.length) { container.innerHTML = '<div class="loading">No users created yet</div>'; return; }
+            let html = `<div style="overflow-x:auto;"><table><thead><tr><th>ID</th><th>Username</th><th>Password</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+            users.forEach(u => {
+                const status = new Date(u.expiry_date) > new Date() ? 'Active' : 'Expired';
+                const statusClass = status === 'Active' ? 'status-active' : 'status-expired';
+                const url = `${location.origin}/get.php?username=${u.username}&password=${u.password}&type=m3u_plus&output=ts`;
+                html += `<tr>
+                    <td>${u.id}</td>
+                    <td>${escapeHtml(u.username)}</td>
+                    <td>${escapeHtml(u.password)}</td>
+                    <td>${u.expiry_date}</td>
+                    <td><span class="${statusClass}">${status}</span></td>
+                    <td class="action-icons">
+                        <button class="icon-copy" onclick="copyToClipboard('${url}')" title="Copy URL">📋</button>
+                        <button class="icon-edit" onclick="editUserChannels(${u.id}, '${u.username}')" title="Edit Channels">✏️</button>
+                        <button class="icon-password" onclick="showPasswordModal(${u.id})" title="Change Password">🔑</button>
+                        <button class="icon-delete" onclick="deleteUser(${u.id})" title="Delete User">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+        }
+        
+        async function createUser() {
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const days = document.getElementById('expiryDays').value;
+            if (!username || !password) { alert('Fill all fields'); return; }
+            const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, expiry_days: days, channels: [] }) });
+            const data = await res.json();
+            if (data.success) { document.getElementById('newUsername').value = ''; document.getElementById('newPassword').value = ''; loadUsers(); alert('User created'); }
+            else alert(data.message || 'Failed');
+        }
+        
+        async function editUserChannels(userId, username) {
+            currentUserId = userId;
+            document.getElementById('modalUsername').textContent = username;
+            const uRes = await fetch(`/api/user-channels?user_id=${userId}`); const uData = await uRes.json();
+            currentUserChannels = uData.channels || [];
+            const cRes = await fetch('/api/categories'); const cData = await cRes.json();
+            allCategories = cData.categories || [];
+            let html = '';
+            for (const cat of allCategories) {
+                const chRes = await fetch(`/api/channels?category=${encodeURIComponent(cat)}`); const chData = await chRes.json();
+                const catId = 'cat_' + btoa(cat).replace(/[^a-z0-9]/gi, '_');
+                html += `<div class="category"><div class="category-header" onclick="toggleCategory('${catId}')">📁 ${cat} (${chData.channels?.length || 0})</div><div class="channels-container" id="${catId}">`;
+                if (chData.channels) { chData.channels.forEach(ch => { const checked = currentUserChannels.includes(ch.url) ? 'checked' : ''; html += `<div class="channel-item"><input type="checkbox" class="channel-cb" data-url="${escapeHtml(ch.url)}" ${checked}> ${escapeHtml(ch.name)}</div>`; }); }
+                html += `</div></div>`;
+            }
+            document.getElementById('categoriesList').innerHTML = html;
+            document.getElementById('channelModal').style.display = 'flex';
+        }
+        
+        function toggleCategory(id) { const div = document.getElementById(id); if (div) div.style.display = div.style.display === 'none' ? 'block' : 'none'; }
+        
+        async function saveUserChannels() {
+            const selected = []; document.querySelectorAll('.channel-cb:checked').forEach(cb => selected.push(cb.getAttribute('data-url')));
+            const res = await fetch(`/api/user?id=${currentUserId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channels: selected }) });
+            const data = await res.json();
+            if (data.success) { alert('Saved'); closeChannelModal(); loadUsers(); } else alert('Failed');
+        }
+        
+        async function deleteUser(id) { if (!confirm('Delete user?')) return; const res = await fetch(`/api/user?id=${id}`, { method: 'DELETE' }); const data = await res.json(); if (data.success) { loadUsers(); alert('Deleted'); } }
+        
+        function showPasswordModal(userId) { currentUserId = userId; document.getElementById('passwordModal').style.display = 'flex'; document.getElementById('newPasswordInput').value = ''; }
+        
+        async function changePassword() {
+            const newPw = document.getElementById('newPasswordInput').value;
+            if (!newPw || newPw.length < 4) { alert('Password must be 4+ chars'); return; }
+            const res = await fetch('/api/user-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: currentUserId, password: newPw }) });
+            const data = await res.json(); if (data.success) { alert('Password changed'); closePasswordModal(); loadUsers(); }
+        }
+        
+        function closeChannelModal() { document.getElementById('channelModal').style.display = 'none'; }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text); alert('URL copied!'); }
+        function escapeHtml(str) { return str.replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; }); }
+        function logout() { fetch('/api/auth', { method: 'DELETE' }).then(() => location.reload()); }
+        
+        loadTheme();
+        fetch('/api/auth').then(r => r.json()).then(data => { if (data.authenticated) { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAllData(); setInterval(loadServerStats, 30000); } });
+    </script>
+</body>
+</html>

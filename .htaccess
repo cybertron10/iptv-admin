@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# API routes - route all /api/* requests to api/index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+
+# Stream proxy routes
+RewriteRule ^(live|movie|series)/(.*)$ stream_proxy.php [QSA,L]
+
+# Default
+Options -Indexes
