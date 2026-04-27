@@ -331,3 +331,9 @@
     </script>
 </body>
 </html>
+<script>
+// Override editPackage function to open package editor
+window.editPackage = function(userId, username) {
+    window.open('/package-editor.html?user_id=' + userId + '&username=' + username, '_blank');
+};
+</script>

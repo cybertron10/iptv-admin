@@ -24,7 +24,6 @@ if ($result->num_rows === 0) {
 
 $user = $result->fetch_assoc();
 
-// Verify password
 $password_valid = false;
 if (password_verify($password, $user['password'])) {
     $password_valid = true;
@@ -60,8 +59,9 @@ if (empty($urls)) {
     die("No content assigned");
 }
 
-header('Content-Type: audio/mpegurl');
-header('Content-Disposition: inline; filename="playlist.m3u"');
+// Force download
+header('Content-Type: application/vnd.apple.mpegurl');
+header('Content-Disposition: attachment; filename="playlist.m3u"');
 
 $full_m3u = '/var/www/html/final.m3u';
 if (!file_exists($full_m3u)) {
@@ -76,10 +76,26 @@ while (($line = fgets($handle)) !== false) {
     $line = rtrim($line);
     if (strpos($line, '#EXTINF') === 0) {
         $current_extinf = $line;
-    } elseif (strpos($line, 'http://') === 0 && $current_extinf) {
+    } elseif (strpos($line, 'https://') === 0 && $current_extinf) {
         if (in_array($line, $urls)) {
+            // Replace datahub11 URL with local proxy URL
+            $new_url = str_replace(
+                'https://datahub11.com:443/live/DCme2Ya8Jx/downright5homework/',
+                'http://178.238.227.140:8080/live/',
+                $line
+            );
+            $new_url = str_replace(
+                'https://datahub11.com:443/movie/DCme2Ya8Jx/downright5homework/',
+                'http://178.238.227.140:8080/movie/',
+                $new_url
+            );
+            $new_url = str_replace(
+                'https://datahub11.com:443/series/DCme2Ya8Jx/downright5homework/',
+                'http://178.238.227.140:8080/series/',
+                $new_url
+            );
             echo $current_extinf . "\n";
-            echo $line . "\n";
+            echo $new_url . "\n";
         }
         $current_extinf = '';
     }

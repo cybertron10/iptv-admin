@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Package Editor - All Categories</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        .container { max-width: 1400px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+        .category { margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        .category-header { background: #e0e0e0; padding: 10px; cursor: pointer; border-radius: 5px; margin: 0; }
+        .category-header input { margin-right: 10px; }
+        .channels { margin-left: 30px; display: none; padding: 10px; max-height: 200px; overflow-y: auto; }
+        .channel { padding: 5px; }
+        .channel input { margin-right: 8px; }
+        button { padding: 8px 16px; margin: 10px 5px; cursor: pointer; }
+        .stats { margin: 10px 0; padding: 10px; background: #d4edda; border-radius: 5px; font-weight: bold; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .search-box { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Package Editor for: <span id="username"></span></h2>
+    <div id="loadingMsg" class="loading">Loading 578 categories (90MB)... Please wait...</div>
+    <div id="editor" style="display:none;">
+        <div class="stats" id="stats"></div>
+        <input type="text" id="searchBox" class="search-box" placeholder="Search categories..." onkeyup="searchCategories()">
+        <div>
+            <button onclick="selectAll()">Select All</button>
+            <button onclick="deselectAll()">Deselect All</button>
+            <button onclick="expandAll()">Expand All</button>
+            <button onclick="collapseAll()">Collapse All</button>
+        </div>
+        <div id="categories" style="max-height: 500px; overflow-y: auto;"></div>
+        <div style="margin-top:20px;">
+            <button onclick="savePackage()">Save Package</button>
+            <button onclick="window.close()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('user_id');
+const userName = urlParams.get('username');
+document.getElementById('username').innerText = userName;
+
+let allCategories = {};
+let selectedChannels = new Set();
+
+async function loadData() {
+    // Load user's current channels
+    const userRes = await fetch(`/api/user-channels?user_id=${userId}`);
+    const userData = await userRes.json();
+    if (userData.success && userData.channels) {
+        userData.channels.forEach(url => selectedChannels.add(url));
+    }
+    
+    // Load all categories from JSON
+    const catRes = await fetch('/api/channels.json');
+    allCategories = await catRes.json();
+    
+    displayCategories();
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('editor').style.display = 'block';
+}
+
+function displayCategories() {
+    const container = document.getElementById('categories');
+    const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+    let html = '';
+    let totalSelected = 0;
+    
+    for (const [catName, channels] of Object.entries(allCategories)) {
+        if (searchTerm && !catName.toLowerCase().includes(searchTerm)) continue;
+        
+        const catId = catName.replace(/[^a-z0-9]/gi, '_');
+        const allSelected = channels.length > 0 && channels.every(ch => selectedChannels.has(ch.url));
+        
+        let channelsHtml = '';
+        channels.forEach(ch => {
+            const checked = selectedChannels.has(ch.url) ? 'checked' : '';
+            if (checked) totalSelected++;
+            channelsHtml += `<div class="channel"><input type="checkbox" class="channelCb" data-url="${ch.url}" onchange="updateChannel('${catId}')" ${checked}> ${escapeHtml(ch.name)}</div>`;
+        });
+        
+        html += `<div class="category">
+            <div class="category-header" onclick="toggleCategory('${catId}')">
+                <input type="checkbox" class="catCheckbox" data-cat="${catId}" onchange="toggleCategoryCheckbox('${catId}')" ${allSelected ? 'checked' : ''} onclick="event.stopPropagation()">
+                <strong>${escapeHtml(catName)} (${channels.length})</strong>
+            </div>
+            <div class="channels" id="${catId}">${channelsHtml}</div>
+        </div>`;
+    }
+    container.innerHTML = html;
+    document.getElementById('stats').innerHTML = `Selected: ${selectedChannels.size} channels | Total: ${Object.keys(allCategories).length} categories`;
+}
+
+function searchCategories() {
+    displayCategories();
+}
+
+function updateChannel(catId) {
+    const catChannels = document.querySelectorAll(`#${catId} .channelCb`);
+    const catCheckbox = document.querySelector(`.catCheckbox[data-cat="${catId}"]`);
+    const allChecked = Array.from(catChannels).every(cb => cb.checked);
+    if (catCheckbox) catCheckbox.checked = allChecked;
+    updateStats();
+}
+
+function toggleCategoryCheckbox(catId) {
+    const catCheckbox = document.querySelector(`.catCheckbox[data-cat="${catId}"]`);
+    const isChecked = catCheckbox.checked;
+    const catChannels = document.querySelectorAll(`#${catId} .channelCb`);
+    catChannels.forEach(cb => cb.checked = isChecked);
+    
+    // Update selectedChannels Set
+    catChannels.forEach(cb => {
+        if (isChecked) selectedChannels.add(cb.getAttribute('data-url'));
+        else selectedChannels.delete(cb.getAttribute('data-url'));
+    });
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('stats').innerHTML = `Selected: ${selectedChannels.size} channels | Total: ${Object.keys(allCategories).length} categories`;
+}
+
+function selectAll() {
+    document.querySelectorAll('.channelCb').forEach(cb => {
+        cb.checked = true;
+        selectedChannels.add(cb.getAttribute('data-url'));
+    });
+    document.querySelectorAll('.catCheckbox').forEach(cb => cb.checked = true);
+    updateStats();
+}
+
+function deselectAll() {
+    document.querySelectorAll('.channelCb').forEach(cb => {
+        cb.checked = false;
+        selectedChannels.delete(cb.getAttribute('data-url'));
+    });
+    document.querySelectorAll('.catCheckbox').forEach(cb => cb.checked = false);
+    updateStats();
+}
+
+function expandAll() {
+    document.querySelectorAll('.channels').forEach(el => el.style.display = 'block');
+}
+
+function collapseAll() {
+    document.querySelectorAll('.channels').forEach(el => el.style.display = 'none');
+}
+
+window.toggleCategory = function(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function savePackage() {
+    const selected = Array.from(selectedChannels);
+    const res = await fetch(`/api/user?id=${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channels: selected })
+    });
+    const data = await res.json();
+    if (data.success) {
+        alert(`Saved ${selected.length} channels`);
+        window.close();
+    } else {
+        alert('Failed to save');
+    }
+}
+
+function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+        return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;';
+    });
+}
+
+loadData();
+</script>
+</body>
+</html>
