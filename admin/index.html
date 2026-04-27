@@ -98,7 +98,6 @@
     
     <div id="packageModal" class="modal">
         <div class="modal-content">
-            <h3>Edit Package for <span id="modalUsername"></span></h3>
             <div id="categoriesList"></div>
             <button onclick="savePackage()" class="btn-primary" style="margin-top:15px;">Save</button>
             <button onclick="closePackageModal()">Cancel</button>
@@ -186,7 +185,6 @@
                         <td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.password)}</td><td>${u.expiry_date}</td><td><span style="color:${statusColor}">${status}</span></td>
                         <td class="action-icons">
                             <button onclick="copyUrl('${url}')" class="btn-primary">📋 Copy</button>
-                            <button onclick="editPackage(${u.id}, '${u.username}')" class="btn-warning">✏️ Edit</button>
                             <button onclick="showPasswordModal(${u.id})" class="btn-warning">🔑 PW</button>
                             <button onclick="deleteUser(${u.id})" class="btn-danger">🗑️ Del</button>
                         </td>
@@ -208,32 +206,6 @@
         }
         
         async function editPackage(userId, username) {
-            currentUserId = userId;
-            document.getElementById('modalUsername').innerText = username;
-            
-            const uRes = await fetch(`/api/user-channels?user_id=${userId}`);
-            const uData = await uRes.json();
-            currentUserChannels = uData.channels || [];
-            
-            const cRes = await fetch('/api/categories');
-            const cData = await cRes.json();
-            
-            let html = '';
-            for (const cat of (cData.categories || []).slice(0, 80)) {
-                const chRes = await fetch(`/api/channels?category=${encodeURIComponent(cat)}`);
-                const chData = await chRes.json();
-                const catId = cat.replace(/[^a-z0-9]/gi, '_');
-                html += `<div class="category">
-                    <div class="category-header" onclick="toggleCategory('${catId}')">📁 ${cat} (${chData.channels?.length || 0})</div>
-                    <div class="channels-container" id="${catId}">`;
-                if (chData.channels) {
-                    chData.channels.slice(0, 50).forEach(ch => {
-                        const checked = currentUserChannels.includes(ch.url) ? 'checked' : '';
-                        html += `<div class="channel-item"><input type="checkbox" class="channel-cb" data-url="${ch.url}" ${checked}> ${escapeHtml(ch.name)}</div>`;
-                    });
-                }
-                html += `</div></div>`;
-            }
             document.getElementById('categoriesList').innerHTML = html;
             document.getElementById('packageModal').style.display = 'flex';
         }
