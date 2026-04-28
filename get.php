@@ -9,95 +9,62 @@ if (empty($username) || empty($password)) {
 }
 
 $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-if ($conn->connect_error) {
-    die("Database error");
-}
+if ($conn->connect_error) die("Database error");
 
-$stmt = $conn->prepare("SELECT id, password, plain_password, expiry_date, is_active FROM users WHERE username = ?");
+$stmt = $conn->prepare("
+    SELECT u.id, u.password, u.plain_password, u.expiry_date, u.is_active, 
+           p.filename as package_file
+    FROM users u 
+    LEFT JOIN packages p ON u.package_id = p.id 
+    WHERE u.username = ?
+");
 $stmt->bind_param("s", $username);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows === 0) {
-    die("Invalid username");
-}
-
+if ($result->num_rows === 0) die("Invalid username");
 $user = $result->fetch_assoc();
 
 $password_valid = false;
-if (password_verify($password, $user['password'])) {
-    $password_valid = true;
-} elseif ($user['plain_password'] === $password) {
-    $password_valid = true;
+if (password_verify($password, $user['password'])) $password_valid = true;
+elseif ($user['plain_password'] === $password) $password_valid = true;
+
+if (!$password_valid) die("Invalid password");
+if (strtotime($user['expiry_date']) < time()) die("Account expired");
+if (!$user['is_active']) die("Account inactive");
+
+if (empty($user['package_file'])) {
+    die("No package assigned to this user");
 }
 
-if (!$password_valid) {
-    die("Invalid password");
+$file_path = "/var/www/html/packages/" . $user['package_file'];
+if (!file_exists($file_path)) {
+    die("Package file not found");
 }
 
-if (strtotime($user['expiry_date']) < time()) {
-    die("Account expired");
-}
-
-if (!$user['is_active']) {
-    die("Account inactive");
-}
-
-$content_stmt = $conn->prepare("SELECT content_url FROM user_content WHERE user_id = ?");
-$content_stmt->bind_param("i", $user['id']);
-$content_stmt->execute();
-$content_result = $content_stmt->get_result();
-
-$urls = [];
-while ($row = $content_result->fetch_assoc()) {
-    $urls[] = $row['content_url'];
-}
-$content_stmt->close();
-$conn->close();
-
-if (empty($urls)) {
-    die("No content assigned");
-}
-
-// Force download
 header('Content-Type: application/vnd.apple.mpegurl');
 header('Content-Disposition: attachment; filename="playlist.m3u"');
 
-$full_m3u = '/var/www/html/final.m3u';
-if (!file_exists($full_m3u)) {
-    die("Playlist file not found");
-}
-
-echo "#EXTM3U\n";
-$handle = fopen($full_m3u, 'r');
-$current_extinf = '';
+$base_url = 'https://' . $_SERVER['HTTP_HOST'];
+$handle = fopen($file_path, 'r');
 
 while (($line = fgets($handle)) !== false) {
-    $line = rtrim($line);
     if (strpos($line, '#EXTINF') === 0) {
-        $current_extinf = $line;
-    } elseif (strpos($line, 'https://') === 0 && $current_extinf) {
-        if (in_array($line, $urls)) {
-            // Replace datahub11 URL with local proxy URL
-            $new_url = str_replace(
-                'https://datahub11.com:443/live/DCme2Ya8Jx/downright5homework/',
-                'http://178.238.227.140:8080/live/',
-                $line
-            );
-            $new_url = str_replace(
-                'https://datahub11.com:443/movie/DCme2Ya8Jx/downright5homework/',
-                'http://178.238.227.140:8080/movie/',
-                $new_url
-            );
-            $new_url = str_replace(
-                'https://datahub11.com:443/series/DCme2Ya8Jx/downright5homework/',
-                'http://178.238.227.140:8080/series/',
-                $new_url
-            );
-            echo $current_extinf . "\n";
-            echo $new_url . "\n";
-        }
-        $current_extinf = '';
+        echo $line;
+    } elseif (preg_match('/https?:\/\/[^\s]+/', $line, $matches)) {
+        $new_url = str_replace(
+            'https://datahub11.com:443/live/DCme2Ya8Jx/downright5homework/',
+            $base_url . '/live/' . $username . '/' . $password . '/',
+            $line
+        );
+        $new_url = str_replace(
+            'https://datahub11.com:443/movie/DCme2Ya8Jx/downright5homework/',
+            $base_url . '/movie/' . $username . '/' . $password . '/',
+            $new_url
+        );
+        echo $new_url;
+    } else {
+        echo $line;
     }
 }
 fclose($handle);

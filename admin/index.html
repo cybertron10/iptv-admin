@@ -70,6 +70,7 @@
                 <div>
                     <button onclick="toggleTheme()" style="background:none; border:none; font-size:20px; cursor:pointer;">🌓</button>
                     <button onclick="refreshAll()" class="btn-primary">🔄 Refresh</button>
+                    <button onclick="location.href='packages.php'" class="btn-primary" style="background:#28a745;">📦 Packages</button>
                     <button onclick="logout()" class="btn-danger">Logout</button>
                 </div>
             </div>
@@ -186,6 +187,7 @@
                         <td class="action-icons">
                             <button onclick="copyUrl('${url}')" class="btn-primary">📋 Copy</button>
                             <button onclick="showPasswordModal(${u.id})" class="btn-warning">🔑 PW</button>
+                            <button onclick="assignPackage(${u.id})" class="btn-primary" style="background:#28a745;">📦 Assign</button>
                             <button onclick="deleteUser(${u.id})" class="btn-danger">🗑️ Del</button>
                         </td>
                     </tr>`;
@@ -308,4 +310,9 @@
 window.editPackage = function(userId, username) {
     window.open('/package-editor.html?user_id=' + userId + '&username=' + username, '_blank');
 };
+</script>
+<script>
+function assignPackage(userId) {
+    window.location.href = 'assign_package.php?id=' + userId;
+}
 </script>
