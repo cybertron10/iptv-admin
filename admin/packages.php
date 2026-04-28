@@ -116,7 +116,7 @@ $packages = $conn->query("SELECT * FROM packages ORDER BY id DESC");
     <div class="card">
         <h2>Download Default M3U</h2>
         <p>Download the original M3U from datahub11 to edit and create custom packages.</p>
-        <a href="?download_default=1" class="btn-default" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 8px; margin-top: 10px;">⬇️ Download Default M3U</a>
+        <a href="?download_default=1" target="_blank" class="btn-default" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 8px; margin-top: 10px;">⬇️ Download Default M3U</a>
     </div>
     
     <h2>Existing Packages</h2>

@@ -52,14 +52,16 @@ while (($line = fgets($handle)) !== false) {
     if (strpos($line, '#EXTINF') === 0) {
         echo $line;
     } elseif (preg_match('/https?:\/\/[^\s]+/', $line, $matches)) {
+        // Replace ALL datahub11 URLs with proxy URL
         $new_url = str_replace(
-            'https://datahub11.com:443/live/DCme2Ya8Jx/downright5homework/',
-            $base_url . '/live/' . $username . '/' . $password . '/',
+            'https://datahub11.com:443/',
+            $base_url . '/',
             $line
         );
-        $new_url = str_replace(
-            'https://datahub11.com:443/movie/DCme2Ya8Jx/downright5homework/',
-            $base_url . '/movie/' . $username . '/' . $password . '/',
+        // Now insert username/password into the path
+        $new_url = preg_replace(
+            '#/(live|movie|series)/DCme2Ya8Jx/downright5homework/#',
+            '/' . $username . '/' . $password . '/',
             $new_url
         );
         echo $new_url;

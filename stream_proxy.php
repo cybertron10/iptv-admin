@@ -6,42 +6,71 @@ while (ob_get_level()) {
 set_time_limit(0); // Unlimited execution time
 
 $request_uri = $_SERVER['REQUEST_URI'];
-if (preg_match('/\/(live|movie|series)\/(.+)/', $request_uri, $matches)) {
-    $type = $matches[1];
-    $file = $matches[2];
-    // Use HTTP instead of HTTPS to avoid SSL issues
-    $original_url = "http://datahub11.com:80/{$type}/DCme2Ya8Jx/downright5homework/{$file}";
 
+// New pattern: /username/password/filename
+if (preg_match('/\/([^\/]+)\/([^\/]+)\/(.+)/', $request_uri, $matches)) {
+    $username = $matches[1];
+    $password = $matches[2];
+    $file = $matches[3];
+    
+    // Verify credentials
+    require_once("/etc/iptv-proxy/config.php");
+    $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+    if ($conn->connect_error) die("Database error");
+    
+    $stmt = $conn->prepare("SELECT id, password, plain_password, expiry_date, is_active FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        http_response_code(401);
+        die("Unauthorized");
+    }
+    $user = $result->fetch_assoc();
+    
+    $password_valid = false;
+    if (password_verify($password, $user['password'])) $password_valid = true;
+    elseif ($user['plain_password'] === $password) $password_valid = true;
+    
+    if (!$password_valid || strtotime($user['expiry_date']) < time() || !$user['is_active']) {
+        http_response_code(401);
+        die("Unauthorized");
+    }
+    $conn->close();
+    
+    // Determine type from file extension
+    if (preg_match('/\.ts$/', $file)) {
+        $type = 'live';
+        $content_type = 'video/mp2t';
+    } else {
+        $type = 'movie';
+        $content_type = 'video/mp4';
+    }
+    
+    // Construct original URL
+    $original_url = "http://datahub11.com:80/{$type}/DCme2Ya8Jx/downright5homework/{$file}";
+    
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $original_url);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
     curl_setopt($ch, CURLOPT_HEADER, false);
     curl_setopt($ch, CURLOPT_TIMEOUT, 0);
     
-    // Set the header based on stream type
-    if ($type == 'live') {
-        header('Content-Type: video/mp2t');
-    } else {
-        header('Content-Type: video/mp4');
-    }
+    header('Content-Type: ' . $content_type);
     
-    // Stream the data directly to the client
     $output = fopen('php://output', 'wb');
     curl_setopt($ch, CURLOPT_FILE, $output);
-    
-    $result = curl_exec($ch);
-    
-    if (curl_errno($ch)) {
-        http_response_code(500);
-        echo "cURL Error: " . curl_error($ch);
-    }
-    
+    curl_exec($ch);
     fclose($output);
     curl_close($ch);
     exit;
 }
+
+http_response_code(404);
+echo "Not found";
 ?>

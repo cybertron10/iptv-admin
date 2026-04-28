@@ -5,8 +5,10 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/(.*)$ api/index.php [QSA,L]
 
-# Stream proxy routes
-RewriteRule ^(live|movie|series)/(.*)$ stream_proxy.php [QSA,L]
+# Stream proxy routes - catch all requests that are not files/directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ stream_proxy.php [QSA,L]
 
 # Default
 Options -Indexes
